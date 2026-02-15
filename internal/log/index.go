@@ -1,6 +1,7 @@
 package log
 
 import (
+	"io"
 	"os"
 
 	"github.com/tysonmote/gommap"
@@ -23,16 +24,16 @@ func newIndex(f *os.File, c Config) (*index, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	if err := os.Truncate(f.Name(), int64(c.Segment.MaxIndexBytes)); err != nil {
 		return nil, err
 	}
-	
+
 	idx := &index{
 		file: f,
 		size: uint64(fi.Size()),
-	}	
-	
+	}
+
 	idx.mmap, err = gommap.Map(
 		f.Fd(),
 		gommap.PROT_READ|gommap.PROT_WRITE,
@@ -41,7 +42,7 @@ func newIndex(f *os.File, c Config) (*index, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return idx, nil
 }
 
@@ -49,14 +50,35 @@ func (i *index) Close() error {
 	if err := i.mmap.Sync(gommap.MS_SYNC); err != nil {
 		return err
 	}
-	
+
 	if err := i.file.Sync(); err != nil {
 		return err
 	}
-	
+
 	if err := i.file.Truncate(int64(i.size)); err != nil {
 		return err
 	}
-	
+
 	return i.file.Close()
+}
+
+func (i *index) Read(offset int64) (id uint32, dataStart uint64, err error) {
+	if i.size == 0 {
+		return 0, 0, io.EOF
+	}
+
+	if offset == -1 {
+		offset = int64(i.size/entWidth) - 1
+	}
+
+	pos := uint64(offset) * entWidth
+
+	if i.size < pos+entWidth {
+		return 0, 0, io.EOF
+	}
+
+	id = enc.Uint32(i.mmap[pos : pos+offWidth])
+	dataStart = enc.Uint64(i.mmap[pos+offWidth : pos+entWidth])
+
+	return
 }
