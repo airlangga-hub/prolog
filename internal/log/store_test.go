@@ -65,7 +65,7 @@ func testReadAt(t *testing.T, s *store) {
 		n, err = s.ReadAt(b, off)
 		require.NoError(t, err)
 		require.Equal(t, write, b)
-		require.Equal(t, size, n)
+		require.Equal(t, int(size), n)
 		
 		off += int64(n)
 	}
