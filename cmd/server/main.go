@@ -2,7 +2,7 @@ package main
 
 import (
 	"log"
-	"proglog/internal/server"
+	"github.com/airlangga-hub/proglog/internal/server"
 )
 
 func main() {

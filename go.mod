@@ -1,4 +1,4 @@
-module proglog
+module github.com/airlangga-hub/proglog
 
 go 1.25.3
 
