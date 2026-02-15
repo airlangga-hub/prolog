@@ -32,7 +32,7 @@ func TestIndex(t *testing.T) {
 	}
 	
 	for _, c := range cases {
-		err := idx.Append(c.Off, c.Pos)
+		err := idx.Write(c.Off, c.Pos)
 		require.NoError(t, err)
 		
 		off, pos, err := idx.Read(int64(c.Off))

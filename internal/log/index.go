@@ -90,7 +90,7 @@ func (i *index) Read(offset int64) (off uint32, pos uint64, err error) {
 	return
 }
 
-func (i *index) Append(off uint32, pos uint64) error {
+func (i *index) Write(off uint32, pos uint64) error {
 	if uint64(len(i.mmap)) < i.size+entWidth {
 		return io.EOF
 	}
