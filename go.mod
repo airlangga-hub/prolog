@@ -4,6 +4,7 @@ go 1.25.3
 
 require (
 	github.com/stretchr/testify v1.11.1
+	github.com/tysonmote/gommap v0.0.3
 	google.golang.org/protobuf v1.36.11
 )
 
