@@ -62,7 +62,7 @@ func (i *index) Close() error {
 	return i.file.Close()
 }
 
-func (i *index) Read(offset int64) (id uint32, dataStart uint64, err error) {
+func (i *index) Read(offset int64) (id uint32, pos uint64, err error) {
 	if i.size == 0 {
 		return 0, 0, io.EOF
 	}
@@ -71,14 +71,14 @@ func (i *index) Read(offset int64) (id uint32, dataStart uint64, err error) {
 		offset = int64(i.size/entWidth) - 1
 	}
 
-	pos := uint64(offset) * entWidth
+	pos = uint64(offset) * entWidth
 
 	if i.size < pos+entWidth {
 		return 0, 0, io.EOF
 	}
 
 	id = enc.Uint32(i.mmap[pos : pos+offWidth])
-	dataStart = enc.Uint64(i.mmap[pos+offWidth : pos+entWidth])
+	pos = enc.Uint64(i.mmap[pos+offWidth : pos+entWidth])
 
 	return
 }
