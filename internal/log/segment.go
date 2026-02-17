@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"path"
+
+	"google.golang.org/protobuf/proto"
 )
 
 type segment struct {
@@ -56,4 +58,30 @@ func newSegment(dir string, baseOffset uint64, c Config) (*segment, error) {
 	}
 	
 	return s, nil
+}
+
+func (s *segment) Append(record *api.Record) (uint64, error) {
+	cur := s.nextOffset
+	record.Offset = cur
+	
+	p, err := proto.Marshal(record)
+	if err != nil {
+		return 0, err
+	}
+	
+	_, pos, err := s.store.Append(p)
+	if err != nil {
+		return 0, err
+	}
+	
+	err = s.index.Write(
+		uint32(s.nextOffset - s.baseOffset),
+		pos,
+	)
+	if err != nil {
+		return 0, err
+	}
+	
+	s.nextOffset++
+	return cur, nil
 }
