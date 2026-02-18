@@ -1,6 +1,7 @@
 package log
 
 import (
+	"fmt"
 	"os"
 	"path"
 	"sort"
@@ -94,4 +95,22 @@ func (l *Log) Append(record *log_v1.Record) (uint64, error) {
 	}
 	
 	return off, err
+}
+
+func (l *Log) Read(off uint64) (*log_v1.Record, error) {
+	l.mu.RLock()
+	defer l.mu.RUnlock()
+	
+	var s *segment
+	for _, segment := range l.segments {
+		if segment.baseOffset <= off && off < segment.nextOffset {
+			s = segment
+		}
+	}
+	
+	if s == nil || s.nextOffset <= off {
+		return nil, fmt.Errorf("Offset out of range: %d\n", off)
+	}
+	
+	return s.Read(off)
 }
