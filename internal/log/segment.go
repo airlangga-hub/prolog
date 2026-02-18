@@ -19,9 +19,9 @@ type segment struct {
 func newSegment(dir string, baseOffset uint64, c Config) (*segment, error) {
 	s := &segment{
 		baseOffset: baseOffset,
-		config: c,
+		config:     c,
 	}
-	
+
 	storeFile, err := os.OpenFile(
 		path.Join(dir, fmt.Sprintf("%d%s", baseOffset, ".store")),
 		os.O_RDWR|os.O_CREATE|os.O_APPEND,
@@ -30,12 +30,12 @@ func newSegment(dir string, baseOffset uint64, c Config) (*segment, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	s.store, err = newStore(storeFile)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	indexFile, err := os.OpenFile(
 		path.Join(dir, fmt.Sprintf("%d%s", baseOffset, ".index")),
 		os.O_RDWR|os.O_CREATE,
@@ -44,44 +44,60 @@ func newSegment(dir string, baseOffset uint64, c Config) (*segment, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	s.index, err = newIndex(indexFile, c)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	off, _, err := s.index.Read(-1)
 	if err != nil {
 		s.nextOffset = baseOffset
 	} else {
 		s.nextOffset = baseOffset + uint64(off) + 1
 	}
-	
+
 	return s, nil
 }
 
 func (s *segment) Append(record *api.Record) (uint64, error) {
 	cur := s.nextOffset
 	record.Offset = cur
-	
+
 	p, err := proto.Marshal(record)
 	if err != nil {
 		return 0, err
 	}
-	
+
 	_, pos, err := s.store.Append(p)
 	if err != nil {
 		return 0, err
 	}
-	
+
 	err = s.index.Write(
-		uint32(s.nextOffset - s.baseOffset),
+		uint32(s.nextOffset-s.baseOffset),
 		pos,
 	)
 	if err != nil {
 		return 0, err
 	}
-	
+
 	s.nextOffset++
 	return cur, nil
+}
+
+func (s *segment) Read(off uint64) (*api.Record, error) {
+	_, pos, err := s.index.Read(int64(off - s.baseOffset))
+	if err != nil {
+		return nil, err
+	}
+
+	p, err := s.store.Read(pos)
+	if err != nil {
+		return nil, err
+	}
+
+	record := &api.Record{}
+	err = proto.Unmarshal(p, record)
+	return record, nil
 }
