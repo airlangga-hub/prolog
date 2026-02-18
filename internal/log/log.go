@@ -114,3 +114,32 @@ func (l *Log) Read(off uint64) (*log_v1.Record, error) {
 	
 	return s.Read(off)
 }
+
+func (l *Log) Close() error {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	
+	for _, seg := range l.segments {
+		if err := seg.Close(); err != nil {
+			return err
+		}
+	}
+	
+	return nil
+}
+
+func (l *Log) Remove() error {
+	if err := l.Close(); err != nil {
+		return err
+	}
+	
+	return os.RemoveAll(l.Dir)
+}
+
+func (l *Log) Reset() error {
+	if err := l.Remove(); err != nil {
+		return err
+	}
+	
+	return l.setup()
+}
