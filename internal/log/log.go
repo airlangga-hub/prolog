@@ -2,6 +2,7 @@ package log
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path"
 	"sort"
@@ -181,4 +182,27 @@ func (l *Log) Truncate(lowest uint64) error {
 	l.segments = segments
 
 	return nil
+}
+
+type originReader struct {
+	*store
+	off int64
+}
+
+func (o *originReader) Read(p []byte) (int, error) {
+	n, err := o.ReadAt(p, o.off)
+	o.off += int64(n)
+	return n, err
+}
+
+func (l *Log) Reader() io.Reader {
+	l.mu.RLock()
+	defer l.mu.RUnlock()
+	
+	readers := make([]io.Reader, len(l.segments))
+	for i, seg := range l.segments {
+		readers[i] = &originReader{seg.store, 0}
+	}
+	
+	return io.MultiReader(readers...)
 }
